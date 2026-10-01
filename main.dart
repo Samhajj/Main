@@ -32,7 +32,8 @@ class _HomePageState extends State<HomePage> {
   final _picker = ImagePicker();
 
   String? _inputPath;
-  StatusPreset _preset = StatusPreset.fullHd1080;
+  StatusPreset _preset = StatusPreset.hd720;
+  int _segment = 30;
   bool _split = true;
   bool _busy = false;
   double _progress = 0;
@@ -73,6 +74,7 @@ class _HomePageState extends State<HomePage> {
         _inputPath!,
         preset: _preset,
         split: _split,
+        segmentSeconds: _segment,
         onSegment: (d, t) => setState(() => _stage = 'Part $d of $t'),
       );
       setState(() => _outputs = files);
@@ -121,9 +123,22 @@ class _HomePageState extends State<HomePage> {
             ],
             onChanged: _busy ? null : (v) => setState(() => _preset = v!),
           ),
+          const SizedBox(height: 8),
+          const Text('Part length'),
+          Wrap(
+            spacing: 8,
+            children: [
+              for (final sec in [15, 30, 45, 60, 90])
+                ChoiceChip(
+                  label: Text('${sec}s'),
+                  selected: _segment == sec,
+                  onSelected: _busy ? null : (_) => setState(() => _segment = sec),
+                ),
+            ],
+          ),
           SwitchListTile(
-            title: const Text('Split into 30-second parts'),
-            subtitle: const Text('Needed for Status videos longer than 30s'),
+            title: Text('Split into ${_segment}s parts'),
+            subtitle: const Text('Off = only the first part is made'),
             value: _split,
             onChanged: _busy ? null : (v) => setState(() => _split = v),
           ),
@@ -152,6 +167,13 @@ class _HomePageState extends State<HomePage> {
                   icon: const Icon(Icons.share),
                   onPressed: () => _share(_outputs[i]),
                 ),
+              ),
+            if (_outputs.any((f) => f.lengthSync() > 16 * 1048576))
+              const Padding(
+                padding: EdgeInsets.only(top: 8),
+                child: Text(
+                    'Some parts are over 16 MB, so WhatsApp will likely re-compress them and blur them. Try 540p or a shorter part length.',
+                    style: TextStyle(color: Colors.orange)),
               ),
             const Text(
                 'Tip: choose WhatsApp > My status. Don\'t trim or edit inside WhatsApp, as that re-encodes again.'),
